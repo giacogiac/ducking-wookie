@@ -1,8 +1,11 @@
 package poc;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Calendar;
@@ -20,6 +23,7 @@ public class Central {
 
 	public static void main(String[] args) {
 		genererCours(CoursBoursier.parseCSV("cours.csv"));
+		System.out.println("Stack Exchange OPEN !");
 		ServerSocket ss;
 		try {
 			ss = new ServerSocket(BOURSE_PORT);
@@ -32,7 +36,7 @@ public class Central {
 			Socket s = null;
 			try {
 				s = ss.accept();
-				System.out.println("connection from" + s.getInetAddress());
+				System.out.println("connection from : " + s.getInetAddress());
 				RegionalHandler handler = new RegionalHandler(s);
 				new Thread(handler).start();
 			} catch (IOException iox) {
@@ -42,12 +46,12 @@ public class Central {
 	}
 	
 	private static class RegionalHandler implements Runnable {
-		private ObjectOutputStream toClient;
-		private ObjectInputStream fromClient;
+		private ObjectOutputStream toRegional;
+		private ObjectInputStream fromRegional;
 
 		private RegionalHandler(Socket socket) throws IOException {
-			fromClient = new ObjectInputStream(socket.getInputStream());
-			toClient = new ObjectOutputStream(socket.getOutputStream());
+			fromRegional = new ObjectInputStream(socket.getInputStream());
+			toRegional = new ObjectOutputStream(socket.getOutputStream());
 		}
 
 		@Override
@@ -75,6 +79,8 @@ public class Central {
 		
 		private String ISIN;
 		private String company;
+		
+		PrintWriter file;
 
 		private BourseSimulator(List<CoursBoursier> historique, String iSIN, String company, double init) {
 			this.historique = historique;
@@ -82,16 +88,29 @@ public class Central {
 			this.company = company;
 			currentValue = init;
 			rand = new Random();
-			tendance = rand.nextDouble();
+			tendance = 0.4 + rand.nextDouble() * 0.2;
+			try {
+				file = new PrintWriter(iSIN + ".data", "UTF-8");
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			file.println("##;##");
+			file.println("time;value");
 		}
 
 		@Override
 		public void run() {
 			historique.add(new CoursBoursier(Calendar.getInstance().getTimeInMillis(), ISIN, company, currentValue));
+			file.println(Calendar.getInstance().getTimeInMillis() + ";" + currentValue);
 			while (true) {
-				currentValue += rand.nextDouble() - tendance;
-				tendance += (rand.nextDouble() - 0.5) * 0.1;
+				currentValue += (rand.nextDouble() - tendance) * 0.00000001;
+				tendance += (rand.nextDouble() - 0.5) * 0.0001;
 				historique.add(new CoursBoursier(Calendar.getInstance().getTimeInMillis(), ISIN, company, currentValue));
+				file.println(Calendar.getInstance().getTimeInMillis() + ";" + currentValue);
 			}
 		}
 		
