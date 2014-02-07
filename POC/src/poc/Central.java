@@ -5,10 +5,17 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 public class Central {
 	
 	private static final int BOURSE_PORT = 5555;
+	
+	private static Map<String, List<CoursBoursier>> bourse = new HashMap<String, List<CoursBoursier>>();
 
 	public static void main(String[] args) {
 		ServerSocket ss;
@@ -43,10 +50,14 @@ public class Central {
 
 		@Override
 		public void run() {
-			// TODO Auto-generated method stub
 			
 		}
 		
 	}
+	
+	private static void genererCours() {
+		
+	}
+	
 
 }
