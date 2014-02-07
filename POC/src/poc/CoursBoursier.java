@@ -30,5 +30,4 @@ public class CoursBoursier implements Serializable {
 				+ name + ", company=" + company + ", stockExchanges="
 				+ stockExchanges + "]";
 	}
-
 }
