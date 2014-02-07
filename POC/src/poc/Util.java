@@ -27,9 +27,8 @@ public class Util {
 						String[] data = line.split(";");
 
 						coursBoursiers.add(new CoursBoursier(System
-								.currentTimeMillis(), Double
-								.parseDouble(data[3]), data[1], data[2],
-								data[0]));
+								.currentTimeMillis(), data[0].trim(), data[1]
+								.trim(), Double.parseDouble(data[2])));
 					}
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
