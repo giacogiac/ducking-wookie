@@ -70,6 +70,8 @@ public class Central {
                 // Get from cache
                 CoursBoursier cours = bourse.get(ref).getCours();
                 
+                System.out.println(cours);
+                
                 // Send to client
                 toRegional.writeObject(cours);
             	}
