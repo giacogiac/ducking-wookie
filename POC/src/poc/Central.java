@@ -62,18 +62,19 @@ public class Central {
 		@Override
 		public void run() {
 			try {
-            	while(true)
+				String ref;
+            	while((ref = (String) fromRegional.readObject()) != null)
             	{
                 // Get reference from client
-                String ref = (String) fromRegional.readObject();
                 
-                // Get from cache
+                // Get from data
                 CoursBoursier cours = bourse.get(ref).getCours();
                 
                 System.out.println(cours);
                 
-                // Send to client
+                // Send to regional
                 toRegional.writeObject(cours);
+                toRegional.reset();
             	}
             } catch (IOException | ClassNotFoundException ex) {
             	System.out.println("Request from : " + regional.getInetAddress());

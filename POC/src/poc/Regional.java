@@ -15,8 +15,8 @@ import java.util.logging.Logger;
 
 public class Regional {
 
-    private static final int BOURSE_PORT = 12123;
-    private static final int DELAIS_EXPIRATION = 5; // 5 sec
+    public static final int BOURSE_PORT = 12123;
+    private static final int DELAIS_EXPIRATION = 50; // 5 sec
     private final ConcurrentMap<String, SortedSet<CoursBoursier>> bourse = new ConcurrentHashMap<>();
 
     private Socket socketCentral = null;
@@ -44,6 +44,7 @@ public class Regional {
         
         // Récupération de la dernière valeur du cours depuis le site central
         dernierCours = getFromCentral(ref);
+        System.out.println(dernierCours);
         // Sauvegrade dans le cache
         bourse.get(ref).add(dernierCours);
         
@@ -58,8 +59,10 @@ public class Regional {
     private CoursBoursier getFromCentral(String ref) {
         try {
             toCentral.writeObject(ref);
+            toCentral.reset();
             // Update cache
-            return (CoursBoursier) fromCentral.readObject();
+            CoursBoursier cours = (CoursBoursier) fromCentral.readObject();
+            return cours;
         } catch (IOException | ClassNotFoundException ex) {
             Logger.getLogger(Regional.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -125,8 +128,10 @@ public class Regional {
                 
                 // Get from cache
                 CoursBoursier cours = regional.getCours(ref);
+                
                 // Send to client
                 toClient.writeObject(cours);
+                toClient.reset();
             	}
             } catch (IOException | ClassNotFoundException ex) {
                 Logger.getLogger(Regional.class.getName()).log(Level.SEVERE, null, ex);

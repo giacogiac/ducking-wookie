@@ -21,11 +21,11 @@ public class Local extends TimerTask {
 	//Randomisé
 
 	//Placeholder for testing
-	private static int FREQ_REQUEST_MILLI = 1000;
-	private static int NB_TOTAL_ISINS = 0;
+	private static int FREQ_REQUEST_MILLI = 10; //Range 1 or more
+	private static int NB_TOTAL_ISINS = 1; //Range 1 or more
 	
 	private static final String REGIONNAL_ADRESS = "localhost";
-	private static final int REGIONAL_PORT = 12123;
+	private static final int REGIONAL_PORT = Regional.BOURSE_PORT;
 	
 	private Socket localSocket = null;  
     private ObjectOutputStream toRegional = null;
@@ -55,10 +55,7 @@ public class Local extends TimerTask {
     	try {
             // Get reference from generation
             String ref = generateRef();
-            
-            // Send to Regional
-            toRegional.writeObject(ref);
-            
+                       
             // Get from return from regional and stock in dataset
             CoursBoursier cours = getCours(ref);
             
@@ -73,13 +70,14 @@ public class Local extends TimerTask {
     private String generateRef(){
     	Random rand = new Random();
     	
-    	int randomNum = rand.nextInt(Math.min(initial.size()-1,NB_TOTAL_ISINS) + 1);
+    	int randomNum = rand.nextInt(Math.min(initial.size()-1, (NB_TOTAL_ISINS-1)) + 1);
     	return initial.get(randomNum).ISIN;
     }
     
     private CoursBoursier getFromRegional(String ref) {
         try {
             toRegional.writeObject(ref);
+            toRegional.reset();
             // Update cache
             return (CoursBoursier) fromRegional.readObject();
         } catch (IOException | ClassNotFoundException ex) {
