@@ -16,6 +16,7 @@ import java.util.logging.Logger;
 public class Regional {
 
     private static final int BOURSE_PORT = 5555;
+    private static final int DELAIS_EXPIRATION = 5000; // 5 sec
     private final ConcurrentMap<String, SortedSet<CoursBoursier>> bourse = new ConcurrentHashMap<>();
 
     private Socket socketCentral = null;
@@ -24,21 +25,24 @@ public class Regional {
 
     /**
      * Récupération du dernier cours en fonction de la référence de l'entreprise
-     *
+     * Si le cours n'est pas connu
      * @param ref Identificateur de l'entreprise
      * @return Dernier cours boursier mis en cache
      */
     public CoursBoursier getCours(String ref) {
+        // Si la réfénrece n'existe pas on la créé
         bourse.putIfAbsent(ref, new TreeSet<CoursBoursier>());
         CoursBoursier dernierCours;
         
         long currentTime = Calendar.getInstance().getTimeInMillis();
         if (!bourse.get(ref).isEmpty()) {
             dernierCours = bourse.get(ref).last();
-            if(currentTime - dernierCours.time < 5)
+            // Si la dernière référence cachée n'a pas expiré
+            if(currentTime - dernierCours.time < DELAIS_EXPIRATION)
                 return dernierCours;
         }
         
+        // Récupération de la dernière valeur du cours depuis le site central
         dernierCours = getFromCentral(ref);
         // Sauvegrade dans le cache
         bourse.get(ref).add(dernierCours);
@@ -46,6 +50,11 @@ public class Regional {
         return dernierCours;
     }
 
+    /**
+     * Contact site central pour récupérer la dernière valeur d'un cours boursier
+     * @param ref Identifiant ISIN du cours à mettre à jour
+     * @return La dernière valuer du cours
+     */
     private CoursBoursier getFromCentral(String ref) {
         try {
             toCentral.writeObject(ref);
@@ -57,16 +66,6 @@ public class Regional {
         return null;
     }
 
-    public void addCours(CoursBoursier cours) {
-        String ref = cours.ISIN;
-        if (bourse.containsKey(ref)) {
-            bourse.get(ref).add(cours);
-        } else {
-            SortedSet<CoursBoursier> set = new TreeSet<>();
-            set.add(cours);
-            bourse.put(ref, set);
-        }
-    }
 
     public Regional() {
         try {
@@ -132,5 +131,9 @@ public class Regional {
             }
         }
 
+    }
+    
+    public static void main(String[] args) {
+        (new Regional()).runServer();
     }
 }
