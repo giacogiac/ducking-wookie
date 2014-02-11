@@ -21,11 +21,11 @@ public class Local extends TimerTask {
 	//Randomisé
 
 	//Placeholder for testing
-	private static int NB_REQUEST_PER_S = 500;
+	private static int FREQ_REQUEST_MILLI = 10;
 	private static int NB_TOTAL_ISINS = 5;
 	
-	private static final String REGIONNAL_ADRESS = "";
-	private static final int REGIONAL_PORT = 5555;
+	private static final String REGIONNAL_ADRESS = "localhost";
+	private static final int REGIONAL_PORT = 12123;
 	
 	private Socket localSocket = null;  
     private ObjectOutputStream toRegional = null;
@@ -36,11 +36,11 @@ public class Local extends TimerTask {
     private final List<CoursBoursier> initial = CoursBoursier.parseCSV("cours.csv");
     
     public Local(){
-    	
+    	System.out.println("Init Local");
     	try {
             this.localSocket = new Socket(REGIONNAL_ADRESS, REGIONAL_PORT);
-            this.fromRegional = new ObjectInputStream(localSocket.getInputStream());
             this.toRegional = new ObjectOutputStream(localSocket.getOutputStream());
+            this.fromRegional = new ObjectInputStream(localSocket.getInputStream());
         } catch (UnknownHostException e) {
             System.err.println("Don't know about host: hostname");
         } catch (IOException e) {
@@ -117,18 +117,18 @@ public class Local extends TimerTask {
 		
         //Run timer (local) task
         Timer timer = new Timer(true);
-        timer.scheduleAtFixedRate(timerTask, 0, 1000/NB_REQUEST_PER_S);
+        timer.scheduleAtFixedRate(timerTask, 0, 1000/FREQ_REQUEST_MILLI);
         System.out.println("Local started");
         
         //Cancel after sometime test only
-//        try {
-//            Thread.sleep(1000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//        timer.cancel();
-//        System.out.println("Local cancelled");
-//        System.out.println(">>>>>> " + l.taskNb);
-//        l.closeLocal();
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        timer.cancel();
+        System.out.println("Local cancelled");
+        System.out.println(">>>>>> " + l.taskNb);
+        l.closeLocal();
     }
 }
