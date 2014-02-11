@@ -18,7 +18,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Local extends TimerTask {
-	//Randomisé
+	//Randomisï¿½
 
 	//Placeholder for testing
 	private static int FREQ_REQUEST_MILLI = 10; //Range 1 or more
