@@ -16,7 +16,7 @@ import java.util.logging.Logger;
 public class Regional {
 
     private static final int BOURSE_PORT = 12123;
-    private static final int DELAIS_EXPIRATION = 5000; // 5 sec
+    private static final int DELAIS_EXPIRATION = 5; // 5 sec
     private final ConcurrentMap<String, SortedSet<CoursBoursier>> bourse = new ConcurrentHashMap<>();
 
     private Socket socketCentral = null;
@@ -69,7 +69,7 @@ public class Regional {
 
     public Regional() {
         try {
-            this.socketCentral = new Socket("", BOURSE_PORT);
+            this.socketCentral = new Socket("", Central.BOURSE_PORT);
             this.toCentral = new ObjectOutputStream(socketCentral.getOutputStream());
             this.fromCentral = new ObjectInputStream(socketCentral.getInputStream());
         } catch (IOException ex) {

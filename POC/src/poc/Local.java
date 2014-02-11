@@ -21,8 +21,8 @@ public class Local extends TimerTask {
 	//Randomisé
 
 	//Placeholder for testing
-	private static int FREQ_REQUEST_MILLI = 10;
-	private static int NB_TOTAL_ISINS = 5;
+	private static int FREQ_REQUEST_MILLI = 1000;
+	private static int NB_TOTAL_ISINS = 0;
 	
 	private static final String REGIONNAL_ADRESS = "localhost";
 	private static final int REGIONAL_PORT = 12123;
@@ -117,7 +117,7 @@ public class Local extends TimerTask {
 		
         //Run timer (local) task
         Timer timer = new Timer(true);
-        timer.scheduleAtFixedRate(timerTask, 0, 1000/FREQ_REQUEST_MILLI);
+        timer.scheduleAtFixedRate(timerTask, 0, FREQ_REQUEST_MILLI);
         System.out.println("Local started");
         
         //Cancel after sometime test only

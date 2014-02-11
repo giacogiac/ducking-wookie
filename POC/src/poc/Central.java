@@ -19,7 +19,7 @@ import java.util.logging.Logger;
 
 public class Central {
 	
-	private static final int BOURSE_PORT = 5555;
+	public static final int BOURSE_PORT = 12124;
 	
 	private static Map<String, GraphBourse> bourse = new HashMap<String, GraphBourse>();
 
