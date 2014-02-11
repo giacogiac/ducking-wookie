@@ -1,69 +1,103 @@
 package poc;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Random;
+import java.util.SortedSet;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Local extends TimerTask {
+	//Randomisé
 
 	//Placeholder for testing
-	private static long NB_REQUEST_PER_S = 1;
+	private static int NB_REQUEST_PER_S = 500;
+	private static int NB_TOTAL_ISINS = 5;
 	
 	private static final String REGIONNAL_ADRESS = "";
 	private static final int REGIONAL_PORT = 5555;
 	
 	private Socket localSocket = null;  
-    private DataOutputStream toRegional = null;
-    private DataInputStream fromRegional = null;
+    private ObjectOutputStream toRegional = null;
+    private ObjectInputStream fromRegional = null;
     
     private int taskNb = 0;
+    private final ConcurrentMap<String, SortedSet<CoursBoursier>> bourse = new ConcurrentHashMap<>();
+    private final List<CoursBoursier> initial = CoursBoursier.parseCSV("cours.csv");
     
     public Local(){
     	
-//    	try {
-//            this.localSocket = new Socket(REGIONNAL_ADRESS, REGIONAL_PORT);
-//            this.toRegional = new DataOutputStream(localSocket.getOutputStream());
-//            this.fromRegional = new DataInputStream(localSocket.getInputStream());
-//        } catch (UnknownHostException e) {
-//            System.err.println("Don't know about host: hostname");
-//        } catch (IOException e) {
-//            System.err.println("Couldn't get I/O for the connection to: hostname");
-//        }
+    	try {
+            this.localSocket = new Socket(REGIONNAL_ADRESS, REGIONAL_PORT);
+            this.fromRegional = new ObjectInputStream(localSocket.getInputStream());
+            this.toRegional = new ObjectOutputStream(localSocket.getOutputStream());
+        } catch (UnknownHostException e) {
+            System.err.println("Don't know about host: hostname");
+        } catch (IOException e) {
+            System.err.println("Couldn't get I/O for the connection to: hostname");
+        }
     	
     }
     
     @Override
 	public void run() {
-    	while(true){
-    		taskNb++;
-    	}
+    	taskNb++;
+    	try {
+            // Get reference from generation
+            String ref = generateRef();
+            
+            // Send to Regional
+            toRegional.writeObject(ref);
+            
+            // Get from return from regional and stock in dataset
+            CoursBoursier cours = getCours(ref);
+            
+            // Print
+            System.out.println(cours);
+
+        } catch (Exception ex) {
+            Logger.getLogger(Regional.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    private String generateRef(){
+    	Random rand = new Random();
     	
-//    	if (localSocket != null && toRegional != null && fromRegional != null) {
-//            try {
-//            	//--------------------------------------------------------------
-//            	//TODO Process
-//            	toRegional.writeBytes("");
-//
-//                String responseLine;
-//                
-//                //Readline deprecated TODO read with bytes
-//                while ((responseLine = fromRegional.readLine()) != null) {
-//                    System.out.println("Server: " + responseLine);
-//                    if (responseLine.indexOf("Ok") != -1) {
-//                      break;
-//                    }
-//                }
-//            } catch (UnknownHostException e) {
-//                System.err.println("Trying to connect to unknown host: " + e);
-//            } catch (IOException e) {
-//                System.err.println("IOException:  " + e);
-//            }
-//    	}
-	} 
+    	int randomNum = rand.nextInt(Math.min(initial.size()-1,NB_TOTAL_ISINS) + 1);
+    	return initial.get(randomNum).ISIN;
+    }
+    
+    private CoursBoursier getFromRegional(String ref) {
+        try {
+            toRegional.writeObject(ref);
+            // Update cache
+            return (CoursBoursier) fromRegional.readObject();
+        } catch (IOException | ClassNotFoundException ex) {
+            Logger.getLogger(Regional.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return null;
+    }
+    
+    public CoursBoursier getCours(String ref) {
+        bourse.putIfAbsent(ref, new TreeSet<CoursBoursier>());
+        CoursBoursier dernierCours;
+
+        dernierCours = getFromRegional(ref);
+//        // Sauvegrade dans le data
+        bourse.get(ref).add(dernierCours);
+        
+        return dernierCours;
+    }
     
     public void closeLocal(){
     	try {
@@ -87,14 +121,14 @@ public class Local extends TimerTask {
         System.out.println("Local started");
         
         //Cancel after sometime test only
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        timer.cancel();
-        System.out.println("Local cancelled");
-        System.out.println(l.taskNb);
+//        try {
+//            Thread.sleep(1000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//        timer.cancel();
+//        System.out.println("Local cancelled");
+//        System.out.println(">>>>>> " + l.taskNb);
 //        l.closeLocal();
     }
 }
