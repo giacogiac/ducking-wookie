@@ -237,22 +237,30 @@ public class Local extends TimerTask {
     
     @Override
 	public void run() {
-    	for(int i = 0; i < FREQ_REQUEST_MILLI; i++) {
-    	try {
-            // Get reference from generation
-            String ref = generateRef();
-                       
-            // Get from return from regional and stock in dataset
-            CoursBoursier cours = getCours(ref);
-            
-            // Print
-            // System.out.println(cours);
+    	synchronized (sync) {
+		for (int i = 0; i < FREQ_REQUEST_MILLI; i++) {
+			try {
+				// Get reference from generation
+				String ref = generateRef();
 
-        } catch (Exception ex) {
-            Logger.getLogger(Regional.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    	}
-    }
+				// Get from return from regional and stock in dataset
+				CoursBoursier cours = getCours(ref);
+
+				// Print
+				// System.out.println(cours);
+
+			} catch (Exception ex) {
+				Logger.getLogger(Regional.class.getName()).log(Level.SEVERE,
+						null, ex);
+			}
+		}
+		
+			//System.out.println("" + erreur + " " + nberreur + " " + erreur/nberreur);
+			trace.addPoint(System.currentTimeMillis(), erreur/nberreur);
+			nberreur = 0;
+			erreur = 0;
+		}
+	}
     
     private String generateRef(){
     	Random rand = new Random();
@@ -321,22 +329,6 @@ public class Local extends TimerTask {
         timer = new Timer(true);
         timer.scheduleAtFixedRate(timerTask, 0, 1000);
         System.out.println("Local started");
-        Timer graph = new Timer (true);
-        TimerTask graphTask = new TimerTask() {
-			@Override
-			public void run() {
-				if(nberreur<1) return;
-				synchronized (sync) {
-					//System.out.println("" + erreur + " " + nberreur + " " + erreur/nberreur);
-					trace.addPoint(System.currentTimeMillis(), erreur/nberreur);
-					nberreur = 0;
-					erreur = 0;
-				}
-				
-			}
-
-		};
-		timer.schedule(graphTask, 0, 50);
         while (true) {}
     }
 }
