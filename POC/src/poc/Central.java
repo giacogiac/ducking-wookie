@@ -157,6 +157,7 @@ public class Central {
 			private SecretRegionalHandler(Socket socket) throws IOException {
 				regional = socket;
 				toRegional = new ObjectOutputStream(socket.getOutputStream());
+				toRegional.flush();
 				fromRegional = new ObjectInputStream(socket.getInputStream());
 			}
 
@@ -174,8 +175,8 @@ public class Central {
 	                //System.out.println(cours);
 	                
 	                // Send to regional
-	                toRegional.writeObject(cours);
-	                toRegional.reset();
+	                toRegional.writeUnshared(cours);
+	                toRegional.flush();
 	            	}
 	            } catch (IOException | ClassNotFoundException ex) {
 	            	//System.out.println("Connexion closed from : " + regional.getInetAddress());
@@ -220,6 +221,7 @@ public class Central {
 			private RequeteHandler(Socket socket) throws IOException {
 				sockkkkkk = socket;
 				torequete = new ObjectOutputStream(socket.getOutputStream());
+				torequete.flush();
 				fromrequete = new ObjectInputStream(socket.getInputStream());
 			}
 
@@ -258,6 +260,7 @@ public class Central {
 		private RegionalHandler(Socket socket) throws IOException {
 			regional = socket;
 			toRegional = new ObjectOutputStream(socket.getOutputStream());
+			toRegional.flush();
 			fromRegional = new ObjectInputStream(socket.getInputStream());
 		}
 
@@ -275,8 +278,8 @@ public class Central {
                 //System.out.println(cours);
                 
                 // Send to regional
-                toRegional.writeObject(cours);
-                toRegional.reset();
+                toRegional.writeUnshared(cours);
+                toRegional.flush();
                 synchronized (sync) {
                 	 requete++;
 				}

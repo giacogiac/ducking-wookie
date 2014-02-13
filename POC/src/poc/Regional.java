@@ -5,6 +5,7 @@ import info.monitorenter.gui.chart.demos.Showcase;
 import java.awt.Color;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -99,8 +100,8 @@ public class Regional {
      */
     private CoursBoursier getFromCentral(String ref) {
         try {
-            toCentral.writeObject(ref);
-            toCentral.reset();
+            toCentral.writeUnshared(ref);
+            toCentral.flush();
             // Update cache
             CoursBoursier cours = (CoursBoursier) fromCentral.readObject();
             return cours;
@@ -130,7 +131,8 @@ public class Regional {
     	slider.setVisible(true);
         try {
             this.socketCentral = new Socket(CENTRAL_ADRESS, Central.BOURSE_PORT);
-            this.toCentral = new ObjectOutputStream(socketCentral.getOutputStream());
+            this.toCentral = new ObjectOutputStream(new BufferedOutputStream(socketCentral.getOutputStream()));
+            this.toCentral.flush();
             this.fromCentral = new ObjectInputStream(socketCentral.getInputStream());
         } catch (IOException ex) {
             //Logger.getLogger(Regional.class.getName()).log(Level.SEVERE, null, ex);
@@ -171,7 +173,8 @@ public class Regional {
         private final Regional regional;
 
         private LocalHandler(Socket socket, Regional regional) throws IOException {
-        	this.toClient = new ObjectOutputStream(socket.getOutputStream());
+        	this.toClient = new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+        	this.toClient.flush();
             this.fromClient = new ObjectInputStream(socket.getInputStream());
             this.regional = regional;
         }
@@ -188,8 +191,8 @@ public class Regional {
                 CoursBoursier cours = regional.getCours(ref);
                 
                 // Send to client
-                toClient.writeObject(cours);
-                toClient.reset();
+                toClient.writeUnshared(cours);
+                toClient.flush();
             	}
             } catch (IOException | ClassNotFoundException ex) {
                 //Logger.getLogger(Regional.class.getName()).log(Level.SEVERE, null, ex);

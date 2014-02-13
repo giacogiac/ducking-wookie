@@ -10,6 +10,7 @@ import java.awt.Color;
 import java.awt.GridLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.IOException;
@@ -194,14 +195,17 @@ public class Local extends TimerTask {
     	ServerSocket ss;
     	try {
             this.localSocket = new Socket(REGIONNAL_ADRESS, REGIONAL_PORT);
-            this.toRegional = new ObjectOutputStream(localSocket.getOutputStream());
+            this.toRegional = new ObjectOutputStream(new BufferedOutputStream(localSocket.getOutputStream()));
+            this.toRegional.flush();
             this.fromRegional = new ObjectInputStream(localSocket.getInputStream());
             this.centralSocket = new Socket(CENTRAL_ADRESS, CENTRAL_PORT);
-            this.toCentral = new ObjectOutputStream(centralSocket.getOutputStream());
+            this.toCentral = new ObjectOutputStream(new BufferedOutputStream(centralSocket.getOutputStream()));
+            this.toCentral.flush();
             this.fromCentral = new ObjectInputStream(centralSocket.getInputStream());
             
             this.requeteSocket = new Socket(CENTRAL_ADRESS, REQUETE_PORT);
-            this.toRequete = new ObjectOutputStream(requeteSocket.getOutputStream());
+            this.toRequete = new ObjectOutputStream(new BufferedOutputStream(requeteSocket.getOutputStream()));
+            this.toCentral.flush();
             this.fromRequete = new ObjectInputStream(requeteSocket.getInputStream());
         } catch (UnknownHostException e) {
             System.err.println("Don't know about host: hostname");
@@ -215,8 +219,8 @@ public class Local extends TimerTask {
 					int requete;
 					try {
 						String lol = "LOL";
-						toRequete.writeObject(lol);
-						toRequete.reset();
+						toRequete.writeUnshared(lol);
+						toRequete.flush();
 						requete = fromRequete.readInt();
 						traceRequete.addPoint(System.currentTimeMillis(), requete);
 					} catch (IOException e) {
@@ -228,6 +232,7 @@ public class Local extends TimerTask {
 
 		};
 		timerRequete.schedule(taskRequete, 0, 1000);
+		System.out.println("lol");
     }
     
     @Override
@@ -258,8 +263,8 @@ public class Local extends TimerTask {
     
     private CoursBoursier getFromRegional(String ref) {
         try {
-            toRegional.writeObject(ref);
-            toRegional.reset();
+            toRegional.writeUnshared(ref);
+            toRegional.flush();
             // Update cache
             return (CoursBoursier) fromRegional.readObject();
         } catch (IOException | ClassNotFoundException ex) {
@@ -270,8 +275,8 @@ public class Local extends TimerTask {
     
     private CoursBoursier getFromCentral(String ref) {
         try {
-            toCentral.writeObject(ref);
-            toCentral.reset();
+            toCentral.writeUnshared(ref);
+            toCentral.flush();
             // Update cache
             return (CoursBoursier) fromCentral.readObject();
         } catch (IOException | ClassNotFoundException ex) {
