@@ -238,6 +238,7 @@ public class Central {
 	                
 	                synchronized (sync) {
 	                	torequete.writeInt(requete);
+	                	torequete.flush();
 						requete = 0;
 					}
 	                torequete.reset();
