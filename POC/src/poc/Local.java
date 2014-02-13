@@ -1,5 +1,10 @@
 package poc;
 
+import info.monitorenter.gui.chart.Chart2D;
+import info.monitorenter.gui.chart.rangepolicies.RangePolicyMinimumViewport;
+import info.monitorenter.gui.chart.traces.Trace2DLtd;
+import info.monitorenter.util.Range;
+
 import java.awt.Color;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -33,8 +38,17 @@ public class Local extends TimerTask {
 	
 	static TimerTask timerTask;
 	
+	private static Chart2D chart;
+
+	private static Trace2DLtd trace;
+	
     //Run timer (local) task
     static Timer timer;
+    
+    private static double erreur = 0;
+    private static int nberreur = 0;
+    
+    private static Object sync = new Object();
     
 	//Randomis�
 
@@ -45,9 +59,17 @@ public class Local extends TimerTask {
 	private static final String REGIONNAL_ADRESS = "localhost";
 	private static final int REGIONAL_PORT = Regional.BOURSE_PORT;
 	
+	private static final String CENTRAL_ADRESS = "localhost";
+	private static final int CENTRAL_PORT = Central.BOURSE_SECRET_PORT;
+	
 	private Socket localSocket = null;  
     private ObjectOutputStream toRegional = null;
     private ObjectInputStream fromRegional = null;
+    
+    
+    private Socket centralSocket = null;  
+    private ObjectOutputStream toCentral = null;
+    private ObjectInputStream fromCentral = null;
     
     private int taskNb = 0;
     private final ConcurrentMap<String, SortedSet<CoursBoursier>> bourse = new ConcurrentHashMap<>();
@@ -110,6 +132,30 @@ public class Local extends TimerTask {
     
     public Local(){
     	System.out.println("Init Local");
+    	chart = new Chart2D();
+		chart.getAxisX().setPaintGrid(true);
+		chart.getAxisY().setPaintGrid(true);
+		chart.getAxisY().setRangePolicy(
+				new RangePolicyMinimumViewport(new Range(0, 10)));
+		chart.setGridColor(Color.LIGHT_GRAY);
+		trace = new Trace2DLtd(100);
+		trace.setName("Requetes par secondes");
+		trace.setPhysicalUnits("ms", "Erreur %");
+		trace.setColor(Color.RED);
+		chart.addTrace(trace);
+		JFrame erreur = new JFrame("ERREUR");
+		erreur.add(chart);
+		erreur.setSize(800, 600);
+		erreur.addWindowListener(new WindowAdapter() {
+	  	      /**
+	  	       * @see java.awt.event.WindowAdapter#windowClosing(java.awt.event.WindowEvent)
+	  	       */
+	  	      @Override
+	  	      public void windowClosing(final WindowEvent e) {
+	  	        System.exit(0);
+	  	      }
+	  	    });
+		erreur.setVisible(true);
     	NB_TOTAL_ISINS = initial.size();
     	createNBcoursSlider();
     	createFreqSlider();
@@ -132,6 +178,9 @@ public class Local extends TimerTask {
             this.localSocket = new Socket(REGIONNAL_ADRESS, REGIONAL_PORT);
             this.toRegional = new ObjectOutputStream(localSocket.getOutputStream());
             this.fromRegional = new ObjectInputStream(localSocket.getInputStream());
+            this.centralSocket = new Socket(CENTRAL_ADRESS, CENTRAL_PORT);
+            this.toCentral = new ObjectOutputStream(centralSocket.getOutputStream());
+            this.fromCentral = new ObjectInputStream(centralSocket.getInputStream());
         } catch (UnknownHostException e) {
             System.err.println("Don't know about host: hostname");
         } catch (IOException e) {
@@ -177,14 +226,26 @@ public class Local extends TimerTask {
         return null;
     }
     
+    private CoursBoursier getFromCentral(String ref) {
+        try {
+            toCentral.writeObject(ref);
+            toCentral.reset();
+            // Update cache
+            return (CoursBoursier) fromCentral.readObject();
+        } catch (IOException | ClassNotFoundException ex) {
+            Logger.getLogger(Regional.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return null;
+    }
+    
     public CoursBoursier getCours(String ref) {
-        bourse.putIfAbsent(ref, new TreeSet<CoursBoursier>());
-        CoursBoursier dernierCours;
-
-        dernierCours = getFromRegional(ref);
-//        // Sauvegrade dans le data
-        bourse.get(ref).add(dernierCours);
+        CoursBoursier dernierCours = getFromRegional(ref);
         
+        CoursBoursier dernierCoursCentral = getFromCentral(ref);
+        synchronized (sync) {
+			erreur +=Math.abs(dernierCours.cotation - dernierCoursCentral.cotation)/dernierCoursCentral.cotation*100.0;
+			nberreur++;
+		}
         return dernierCours;
     }
     
@@ -192,7 +253,10 @@ public class Local extends TimerTask {
     	try {
 	    	toRegional.close();
 	        fromRegional.close();
-	        localSocket.close();   
+	        localSocket.close();  
+	        toCentral.close();
+	        fromCentral.close();
+	        centralSocket.close();  
     	} catch (UnknownHostException e) {
     		System.err.println("Trying to connect to unknown host: " + e);
     	} catch (IOException e) {
@@ -208,6 +272,22 @@ public class Local extends TimerTask {
         timer = new Timer(true);
         timer.scheduleAtFixedRate(timerTask, 0, 1000);
         System.out.println("Local started");
+        Timer graph = new Timer (true);
+        TimerTask graphTask = new TimerTask() {
+			@Override
+			public void run() {
+				if(nberreur<1) return;
+				synchronized (sync) {
+					System.out.println(erreur/nberreur);
+					trace.addPoint(System.currentTimeMillis(), erreur/nberreur);
+					nberreur = 0;
+					erreur = 0;
+				}
+				
+			}
+
+		};
+		timer.schedule(graphTask, 0, 50);
         while (true) {}
     }
 }

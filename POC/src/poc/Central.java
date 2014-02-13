@@ -49,15 +49,16 @@ public class Central {
   	        System.exit(0);
   	      }
   	    });
-		stack.setLayout(new GridLayout(3, 3));
+		stack.setLayout(new GridLayout(2, 2));
 		stack.add(bourse.get("FR0000133308").getChart());
 		stack.add(bourse.get("US0378331005").getChart());
 		stack.add(bourse.get("FR0000120271").getChart());
-		stack.add(bourse.get("FR0000133308").getChart());
-		stack.add(bourse.get("FR0000133308").getChart());
-		stack.add(bourse.get("FR0000133308").getChart());
-		stack.add(bourse.get("FR0000133308").getChart());
-		stack.add(bourse.get("FR0000133308").getChart());
+		stack.add(bourse.get("FR0000124141").getChart());
+		//stack.add(bourse.get("FR0000131906").getChart());
+		//stack.add(bourse.get("FR0000131104").getChart());
+		//stack.add(bourse.get("US92826C8394").getChart());
+		//stack.add(bourse.get("US9396401088").getChart());
+		//stack.add(bourse.get("US38259P5089").getChart());
 		stack.pack();
 		stack.setExtendedState(JFrame.MAXIMIZED_BOTH);
 		stack.setVisible(true);
@@ -98,7 +99,7 @@ public class Central {
 		JFrame requeteFrame = new JFrame("Requetes par secondes");
 		requeteFrame.getContentPane().add(chart);
 		requeteFrame.setSize(800, 600);
-		//requeteFrame.setVisible(true);
+		requeteFrame.setVisible(true);
 		SecretServer secrets = new SecretServer(ss_secret);
 		new Thread(secrets).start();
 		while (true) {
@@ -130,7 +131,7 @@ public class Central {
 				try {
 					s = ss.accept();
 					//System.out.println("Request from : " + s.getInetAddress());
-					RegionalHandler handler = new RegionalHandler(s);
+					SecretRegionalHandler handler = new SecretRegionalHandler(s);
 					new Thread(handler).start();
 				} catch (IOException iox) {
 					iox.printStackTrace();
