@@ -26,6 +26,8 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 public class Regional {
+	
+	public static final String CENTRAL_ADRESS = "localhost";
 
     public static final int BOURSE_PORT = 12123;
     private static int DELAIS_EXPIRATION = 5000; // 5 sec
@@ -127,7 +129,7 @@ public class Regional {
     	    });
     	slider.setVisible(true);
         try {
-            this.socketCentral = new Socket("", Central.BOURSE_PORT);
+            this.socketCentral = new Socket(CENTRAL_ADRESS, Central.BOURSE_PORT);
             this.toCentral = new ObjectOutputStream(socketCentral.getOutputStream());
             this.fromCentral = new ObjectInputStream(socketCentral.getInputStream());
         } catch (IOException ex) {
