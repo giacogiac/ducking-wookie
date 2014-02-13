@@ -1,5 +1,8 @@
 package poc;
 
+import java.awt.Color;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.IOException;
@@ -17,12 +20,27 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JFrame;
+import javax.swing.JSlider;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.BoxLayout;
+
 public class Local extends TimerTask {
+	
+	static TimerTask timerTask;
+	
+    //Run timer (local) task
+    static Timer timer;
+    
 	//Randomis�
 
 	//Placeholder for testing
-	private static int FREQ_REQUEST_MILLI = 10; //Range 1 or more
-	private static int NB_TOTAL_ISINS = 1; //Range 1 or more
+	private static int FREQ_REQUEST_MILLI = 100; //Range 1 or more
+	private static int NB_TOTAL_ISINS; //Range 1 or more
 	
 	private static final String REGIONNAL_ADRESS = "localhost";
 	private static final int REGIONAL_PORT = Regional.BOURSE_PORT;
@@ -35,8 +53,81 @@ public class Local extends TimerTask {
     private final ConcurrentMap<String, SortedSet<CoursBoursier>> bourse = new ConcurrentHashMap<>();
     private final List<CoursBoursier> initial = CoursBoursier.parseCSV("cours.csv");
     
+    private JSlider freqSlider;
+    private JSlider nbcoursSlider;
+    
+	private void createFreqSlider() {
+		// Latency slider:
+		this.freqSlider = new JSlider(1, 1000);
+		this.freqSlider.setBackground(Color.WHITE);
+		this.freqSlider.setValue(FREQ_REQUEST_MILLI);
+		this.freqSlider.setMajorTickSpacing(100);
+		this.freqSlider.setMinorTickSpacing(20);
+		this.freqSlider.setSnapToTicks(true);
+		this.freqSlider.setPaintLabels(true);
+		this.freqSlider.setBorder(BorderFactory.createTitledBorder(
+				BorderFactory.createEtchedBorder(), "Frequence requetes",
+				TitledBorder.LEFT, TitledBorder.BELOW_TOP));
+		this.freqSlider.setPaintTicks(true);
+
+		this.freqSlider.addChangeListener(new ChangeListener() {
+			public void stateChanged(final ChangeEvent e) {
+				JSlider source = (JSlider) e.getSource();
+				// Only if not currently dragged...
+				if (!source.getValueIsAdjusting()) {
+					int value = source.getValue();
+					FREQ_REQUEST_MILLI = value;
+				}
+			}
+		});
+	}
+	
+	private void createNBcoursSlider() {
+		// Latency slider:
+		this.nbcoursSlider = new JSlider(1, NB_TOTAL_ISINS);
+		this.nbcoursSlider.setBackground(Color.WHITE);
+		this.nbcoursSlider.setValue(FREQ_REQUEST_MILLI);
+		this.nbcoursSlider.setMajorTickSpacing(1);
+		this.nbcoursSlider.setMinorTickSpacing(1);
+		this.nbcoursSlider.setSnapToTicks(true);
+		this.nbcoursSlider.setPaintLabels(true);
+		this.nbcoursSlider.setBorder(BorderFactory.createTitledBorder(
+				BorderFactory.createEtchedBorder(), "Nombres de cours",
+				TitledBorder.LEFT, TitledBorder.BELOW_TOP));
+		this.nbcoursSlider.setPaintTicks(true);
+
+		this.nbcoursSlider.addChangeListener(new ChangeListener() {
+			public void stateChanged(final ChangeEvent e) {
+				JSlider source = (JSlider) e.getSource();
+				// Only if not currently dragged...
+				if (!source.getValueIsAdjusting()) {
+					int value = source.getValue();
+					NB_TOTAL_ISINS = value;
+				}
+			}
+		});
+	}
+    
     public Local(){
     	System.out.println("Init Local");
+    	NB_TOTAL_ISINS = initial.size();
+    	createNBcoursSlider();
+    	createFreqSlider();
+    	JFrame toolbar = new JFrame("TOOLBAR");
+    	toolbar.getContentPane().setLayout(new BoxLayout(toolbar.getContentPane(), BoxLayout.Y_AXIS));
+    	toolbar.getContentPane().add(this.nbcoursSlider);
+    	toolbar.getContentPane().add(this.freqSlider);
+    	toolbar.setSize(1300, 250);
+    	toolbar.addWindowListener(new WindowAdapter() {
+  	      /**
+  	       * @see java.awt.event.WindowAdapter#windowClosing(java.awt.event.WindowEvent)
+  	       */
+  	      @Override
+  	      public void windowClosing(final WindowEvent e) {
+  	        System.exit(0);
+  	      }
+  	    });
+    	toolbar.setVisible(true);
     	try {
             this.localSocket = new Socket(REGIONNAL_ADRESS, REGIONAL_PORT);
             this.toRegional = new ObjectOutputStream(localSocket.getOutputStream());
@@ -46,12 +137,11 @@ public class Local extends TimerTask {
         } catch (IOException e) {
             System.err.println("Couldn't get I/O for the connection to: hostname");
         }
-    	
     }
     
     @Override
 	public void run() {
-    	taskNb++;
+    	for(int i = 0; i < FREQ_REQUEST_MILLI; i++) {
     	try {
             // Get reference from generation
             String ref = generateRef();
@@ -60,17 +150,18 @@ public class Local extends TimerTask {
             CoursBoursier cours = getCours(ref);
             
             // Print
-            System.out.println(cours);
+            // System.out.println(cours);
 
         } catch (Exception ex) {
             Logger.getLogger(Regional.class.getName()).log(Level.SEVERE, null, ex);
         }
+    	}
     }
     
     private String generateRef(){
     	Random rand = new Random();
     	
-    	int randomNum = rand.nextInt(Math.min(initial.size()-1, (NB_TOTAL_ISINS-1)) + 1);
+    	int randomNum = rand.nextInt(NB_TOTAL_ISINS);
     	return initial.get(randomNum).ISIN;
     }
     
@@ -111,22 +202,12 @@ public class Local extends TimerTask {
 	
 	public static void main(String[] args) {
 		Local l = new Local();
-		TimerTask timerTask = l;
+		timerTask = l;
 		
         //Run timer (local) task
-        Timer timer = new Timer(true);
-        timer.scheduleAtFixedRate(timerTask, 0, FREQ_REQUEST_MILLI);
+        timer = new Timer(true);
+        timer.scheduleAtFixedRate(timerTask, 0, 1000);
         System.out.println("Local started");
-        
-        //Cancel after sometime test only
-        try {
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        timer.cancel();
-        System.out.println("Local cancelled");
-        System.out.println(">>>>>> " + l.taskNb);
-        l.closeLocal();
+        while (true) {}
     }
 }

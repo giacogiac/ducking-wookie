@@ -1,5 +1,10 @@
 package poc;
 
+import info.monitorenter.gui.chart.demos.Showcase;
+
+import java.awt.Color;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -13,15 +18,49 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.BorderFactory;
+import javax.swing.JFrame;
+import javax.swing.JSlider;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
 public class Regional {
 
     public static final int BOURSE_PORT = 12123;
-    private static final int DELAIS_EXPIRATION = 50; // 5 sec
+    private static int DELAIS_EXPIRATION = 5000; // 5 sec
     private final ConcurrentMap<String, SortedSet<CoursBoursier>> bourse = new ConcurrentHashMap<>();
 
     private Socket socketCentral = null;
     private ObjectInputStream fromCentral = null;
     private ObjectOutputStream toCentral = null;
+    
+    private JSlider delaiSlider;
+    
+    private void createDelaiSlider() {
+        // Latency slider:
+        this.delaiSlider = new JSlider(0, 10000);
+        this.delaiSlider.setBackground(Color.WHITE);
+        this.delaiSlider.setValue(DELAIS_EXPIRATION);
+        this.delaiSlider.setMajorTickSpacing(500);
+        this.delaiSlider.setMinorTickSpacing(100);
+        this.delaiSlider.setSnapToTicks(true);
+        this.delaiSlider.setPaintLabels(true);
+        this.delaiSlider.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Cache delai", TitledBorder.LEFT,
+            TitledBorder.BELOW_TOP));
+        this.delaiSlider.setPaintTicks(true);
+
+        this.delaiSlider.addChangeListener(new ChangeListener() {
+          public void stateChanged(final ChangeEvent e) {
+            JSlider source = (JSlider) e.getSource();
+            // Only if not currently dragged...
+            if (!source.getValueIsAdjusting()) {
+              int value = source.getValue();
+              DELAIS_EXPIRATION = value;
+            }
+          }
+        });
+      }
 
     /**
      * Récupération du dernier cours en fonction de la référence de l'entreprise
@@ -44,7 +83,7 @@ public class Regional {
         
         // Récupération de la dernière valeur du cours depuis le site central
         dernierCours = getFromCentral(ref);
-        System.out.println(dernierCours);
+        //System.out.println(dernierCours);
         // Sauvegrade dans le cache
         bourse.get(ref).add(dernierCours);
         
@@ -64,19 +103,36 @@ public class Regional {
             CoursBoursier cours = (CoursBoursier) fromCentral.readObject();
             return cours;
         } catch (IOException | ClassNotFoundException ex) {
-            Logger.getLogger(Regional.class.getName()).log(Level.SEVERE, null, ex);
+            //Logger.getLogger(Regional.class.getName()).log(Level.SEVERE, null, ex);
+        	System.out.println("Deconnexion");
         }
         return null;
     }
 
 
     public Regional() {
+    	createDelaiSlider();
+    	JFrame slider = new JFrame("R�gional");
+    	slider.getContentPane().add(delaiSlider);
+    	slider.pack();
+    	slider.setSize(1300, 150);
+    	slider.addWindowListener(new WindowAdapter() {
+    	      /**
+    	       * @see java.awt.event.WindowAdapter#windowClosing(java.awt.event.WindowEvent)
+    	       */
+    	      @Override
+    	      public void windowClosing(final WindowEvent e) {
+    	        System.exit(0);
+    	      }
+    	    });
+    	slider.setVisible(true);
         try {
             this.socketCentral = new Socket("", Central.BOURSE_PORT);
             this.toCentral = new ObjectOutputStream(socketCentral.getOutputStream());
             this.fromCentral = new ObjectInputStream(socketCentral.getInputStream());
         } catch (IOException ex) {
-            Logger.getLogger(Regional.class.getName()).log(Level.SEVERE, null, ex);
+            //Logger.getLogger(Regional.class.getName()).log(Level.SEVERE, null, ex);
+        	System.out.println("Deconnexion");
         }
     }
 
@@ -134,7 +190,8 @@ public class Regional {
                 toClient.reset();
             	}
             } catch (IOException | ClassNotFoundException ex) {
-                Logger.getLogger(Regional.class.getName()).log(Level.SEVERE, null, ex);
+                //Logger.getLogger(Regional.class.getName()).log(Level.SEVERE, null, ex);
+            	System.out.println("Deconnexion");
             }
         }
 
