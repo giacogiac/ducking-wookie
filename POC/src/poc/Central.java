@@ -9,6 +9,7 @@ import java.awt.Color;
 import java.awt.GridLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -156,7 +157,7 @@ public class Central {
 
 			private SecretRegionalHandler(Socket socket) throws IOException {
 				regional = socket;
-				toRegional = new ObjectOutputStream(socket.getOutputStream());
+				toRegional = new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
 				toRegional.flush();
 				fromRegional = new ObjectInputStream(socket.getInputStream());
 			}
@@ -220,7 +221,7 @@ public class Central {
 
 			private RequeteHandler(Socket socket) throws IOException {
 				sockkkkkk = socket;
-				torequete = new ObjectOutputStream(socket.getOutputStream());
+				torequete = new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
 				torequete.flush();
 				fromrequete = new ObjectInputStream(socket.getInputStream());
 			}
@@ -259,7 +260,7 @@ public class Central {
 
 		private RegionalHandler(Socket socket) throws IOException {
 			regional = socket;
-			toRegional = new ObjectOutputStream(socket.getOutputStream());
+			toRegional = new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
 			toRegional.flush();
 			fromRegional = new ObjectInputStream(socket.getInputStream());
 		}
