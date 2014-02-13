@@ -26,6 +26,7 @@ public class Central {
 	
 	public static final int BOURSE_PORT = 12124;
 	public static final int BOURSE_SECRET_PORT = 12134;
+	public static final int REQUETE_PORT = 12154;
 	
 	private static Map<String, GraphBourse> bourse = new HashMap<String, GraphBourse>();
 	
@@ -36,6 +37,10 @@ public class Central {
 	private static Chart2D chart;
 
 	private static Trace2DLtd trace;
+	
+    private Socket requeteSocket = null;  
+    private ObjectOutputStream toRequete = null;
+    private ObjectInputStream fromRequete= null;
 
 	public static void main(String[] args) {
 		genererCours(CoursBoursier.parseCSV("cours.csv"));
@@ -65,9 +70,11 @@ public class Central {
 		System.out.println("Stack Exchange OPEN !");
 		ServerSocket ss;
 		ServerSocket ss_secret;
+		ServerSocket ss_requete;
 		try {
 			ss = new ServerSocket(BOURSE_PORT);
 			ss_secret = new ServerSocket(BOURSE_SECRET_PORT);
+			ss_requete = new ServerSocket(REQUETE_PORT);
 		} catch (IOException iox) {
 			System.out.println("I/O error at server socket creation");
 			iox.printStackTrace();
@@ -95,13 +102,15 @@ public class Central {
 			}
 
 		};
-		timer.schedule(task, 0, 1000);
+		//timer.schedule(task, 0, 1000);
 		JFrame requeteFrame = new JFrame("Requetes par secondes");
 		requeteFrame.getContentPane().add(chart);
 		requeteFrame.setSize(800, 600);
-		requeteFrame.setVisible(true);
+		//requeteFrame.setVisible(true);
 		SecretServer secrets = new SecretServer(ss_secret);
 		new Thread(secrets).start();
+		RequeteServer requeteeess = new RequeteServer(ss_requete);
+		new Thread(requeteeess).start();
 		while (true) {
 			Socket s = null;
 			try {
@@ -176,6 +185,69 @@ public class Central {
 		}
 		
 	}
+	
+
+	private static class RequeteServer implements Runnable {
+		
+		ServerSocket ss;
+
+		public RequeteServer(ServerSocket ss) {
+			super();
+			this.ss = ss;
+		}
+
+		@Override
+		public void run() {
+			while (true) {
+				Socket s = null;
+				try {
+					s = ss.accept();
+					//System.out.println("Request from : " + s.getInetAddress());
+					RequeteHandler handler = new RequeteHandler(s);
+					new Thread(handler).start();
+				} catch (IOException iox) {
+					iox.printStackTrace();
+				}
+			}
+		}
+		
+		private static class RequeteHandler implements Runnable {
+			private Socket sockkkkkk;
+			
+			private ObjectOutputStream torequete;
+			private ObjectInputStream fromrequete;
+
+			private RequeteHandler(Socket socket) throws IOException {
+				sockkkkkk = socket;
+				torequete = new ObjectOutputStream(socket.getOutputStream());
+				fromrequete = new ObjectInputStream(socket.getInputStream());
+			}
+
+			@Override
+			public void run() {
+				try {
+					String ref;
+	            	while((ref = (String) fromrequete.readObject()) != null)
+	            	{
+	                // Get reference from client
+	                
+	                //System.out.println(cours);
+	                
+	                synchronized (sync) {
+	                	torequete.writeInt(requete);
+						requete = 0;
+					}
+	                torequete.reset();
+	            	}
+	            } catch (IOException | ClassNotFoundException ex) {
+	            	//System.out.println("Connexion closed from : " + regional.getInetAddress());
+	            }
+			}
+			
+		}
+		
+	}
+	
 	
 	private static class RegionalHandler implements Runnable {
 		private Socket regional;

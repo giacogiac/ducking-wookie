@@ -5,12 +5,15 @@ import info.monitorenter.gui.chart.rangepolicies.RangePolicyMinimumViewport;
 import info.monitorenter.gui.chart.traces.Trace2DLtd;
 import info.monitorenter.util.Range;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.GridLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Calendar;
@@ -36,11 +39,17 @@ import javax.swing.BoxLayout;
 
 public class Local extends TimerTask {
 	
+	public static final int REQUETE_PORT = Central.REQUETE_PORT;
+	
 	static TimerTask timerTask;
 	
 	private static Chart2D chart;
 
 	private static Trace2DLtd trace;
+	
+	private static Chart2D chartRequete;
+
+	private static Trace2DLtd traceRequete;
 	
     //Run timer (local) task
     static Timer timer;
@@ -70,6 +79,10 @@ public class Local extends TimerTask {
     private Socket centralSocket = null;  
     private ObjectOutputStream toCentral = null;
     private ObjectInputStream fromCentral = null;
+    
+    private Socket requeteSocket = null;  
+    private ObjectOutputStream toRequete = null;
+    private ObjectInputStream fromRequete= null;
     
     private int taskNb = 0;
     private final ConcurrentMap<String, SortedSet<CoursBoursier>> bourse = new ConcurrentHashMap<>();
@@ -139,32 +152,36 @@ public class Local extends TimerTask {
 				new RangePolicyMinimumViewport(new Range(0, 10)));
 		chart.setGridColor(Color.LIGHT_GRAY);
 		trace = new Trace2DLtd(100);
-		trace.setName("Requetes par secondes");
+		trace.setName("Erreur");
 		trace.setPhysicalUnits("ms", "Erreur %");
 		trace.setColor(Color.RED);
+		trace.setStroke(new BasicStroke(3));
 		chart.addTrace(trace);
-		JFrame erreur = new JFrame("ERREUR");
-		erreur.add(chart);
-		erreur.setSize(800, 600);
-		erreur.addWindowListener(new WindowAdapter() {
-	  	      /**
-	  	       * @see java.awt.event.WindowAdapter#windowClosing(java.awt.event.WindowEvent)
-	  	       */
-	  	      @Override
-	  	      public void windowClosing(final WindowEvent e) {
-	  	        System.exit(0);
-	  	      }
-	  	    });
-		erreur.setVisible(true);
+		
+		chartRequete = new Chart2D();
+		chartRequete.getAxisX().setPaintGrid(true);
+		chartRequete.getAxisY().setPaintGrid(true);
+		chartRequete.getAxisY().setRangePolicy(
+				new RangePolicyMinimumViewport(new Range(0, 50)));
+		chartRequete.setGridColor(Color.LIGHT_GRAY);
+		traceRequete = new Trace2DLtd(100);
+		traceRequete.setName("Requetes par secondes");
+		traceRequete.setPhysicalUnits("ms", "NB REQUETES");
+		traceRequete.setColor(Color.BLUE);
+		traceRequete.setStroke(new BasicStroke(3));
+		chartRequete.addTrace(traceRequete);
     	NB_TOTAL_ISINS = initial.size();
     	createNBcoursSlider();
     	createFreqSlider();
-    	JFrame toolbar = new JFrame("TOOLBAR");
-    	toolbar.getContentPane().setLayout(new BoxLayout(toolbar.getContentPane(), BoxLayout.Y_AXIS));
-    	toolbar.getContentPane().add(this.nbcoursSlider);
-    	toolbar.getContentPane().add(this.freqSlider);
-    	toolbar.setSize(1300, 250);
-    	toolbar.addWindowListener(new WindowAdapter() {
+    	JFrame frame = new JFrame("LOCAL");
+    	frame.getContentPane().setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
+    	frame.getContentPane().add(this.nbcoursSlider);
+    	frame.getContentPane().add(this.freqSlider);
+    	frame.setSize(1300, 600);
+    	frame.add(chart);
+		frame.add(chartRequete);
+		frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+    	frame.addWindowListener(new WindowAdapter() {
   	      /**
   	       * @see java.awt.event.WindowAdapter#windowClosing(java.awt.event.WindowEvent)
   	       */
@@ -173,7 +190,8 @@ public class Local extends TimerTask {
   	        System.exit(0);
   	      }
   	    });
-    	toolbar.setVisible(true);
+    	frame.setVisible(true);
+    	ServerSocket ss;
     	try {
             this.localSocket = new Socket(REGIONNAL_ADRESS, REGIONAL_PORT);
             this.toRegional = new ObjectOutputStream(localSocket.getOutputStream());
@@ -181,11 +199,35 @@ public class Local extends TimerTask {
             this.centralSocket = new Socket(CENTRAL_ADRESS, CENTRAL_PORT);
             this.toCentral = new ObjectOutputStream(centralSocket.getOutputStream());
             this.fromCentral = new ObjectInputStream(centralSocket.getInputStream());
+            
+            this.requeteSocket = new Socket(CENTRAL_ADRESS, REQUETE_PORT);
+            this.toRequete = new ObjectOutputStream(requeteSocket.getOutputStream());
+            this.fromRequete = new ObjectInputStream(requeteSocket.getInputStream());
         } catch (UnknownHostException e) {
             System.err.println("Don't know about host: hostname");
         } catch (IOException e) {
             System.err.println("Couldn't get I/O for the connection to: hostname");
         }
+    	Timer timerRequete = new Timer(true);
+		TimerTask taskRequete = new TimerTask() {
+			@Override
+			public void run() {
+					int requete;
+					try {
+						String lol = "LOL";
+						toRequete.writeObject(lol);
+						toRequete.reset();
+						requete = fromRequete.readInt();
+						traceRequete.addPoint(System.currentTimeMillis(), requete);
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+			}
+
+		};
+		timerRequete.schedule(taskRequete, 0, 1000);
     }
     
     @Override
@@ -243,7 +285,13 @@ public class Local extends TimerTask {
         
         CoursBoursier dernierCoursCentral = getFromCentral(ref);
         synchronized (sync) {
-			erreur +=Math.abs(dernierCours.cotation - dernierCoursCentral.cotation)/dernierCoursCentral.cotation*100.0;
+        	
+			double erreurtmp = Math.abs(dernierCours.cotation - dernierCoursCentral.cotation)/dernierCoursCentral.cotation*100.0;
+			if (erreurtmp > 0.1) {
+			System.out.println("" + dernierCours.cotation + " " + dernierCoursCentral.cotation );
+			System.out.println(erreurtmp);
+			}
+			erreur += erreurtmp;
 			nberreur++;
 		}
         return dernierCours;
@@ -278,7 +326,7 @@ public class Local extends TimerTask {
 			public void run() {
 				if(nberreur<1) return;
 				synchronized (sync) {
-					System.out.println(erreur/nberreur);
+					//System.out.println("" + erreur + " " + nberreur + " " + erreur/nberreur);
 					trace.addPoint(System.currentTimeMillis(), erreur/nberreur);
 					nberreur = 0;
 					erreur = 0;

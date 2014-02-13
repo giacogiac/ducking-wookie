@@ -10,6 +10,7 @@ import info.monitorenter.gui.chart.traces.Trace2DLtd;
 import info.monitorenter.gui.chart.views.ChartPanel;
 import info.monitorenter.util.Range;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -40,6 +41,7 @@ public class GraphBourse implements Runnable {
 		trace.setName(init.company);
 		trace.setPhysicalUnits("ms", "€");
 		trace.setColor(Color.BLUE);
+		trace.setStroke(new BasicStroke(2));
 		chart.addTrace(trace);
 	}
 
