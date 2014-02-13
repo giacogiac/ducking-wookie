@@ -287,10 +287,6 @@ public class Local extends TimerTask {
         synchronized (sync) {
         	
 			double erreurtmp = Math.abs(dernierCours.cotation - dernierCoursCentral.cotation)/dernierCoursCentral.cotation*100.0;
-			if (erreurtmp > 0.1) {
-			System.out.println("" + dernierCours.cotation + " " + dernierCoursCentral.cotation );
-			System.out.println(erreurtmp);
-			}
 			erreur += erreurtmp;
 			nberreur++;
 		}
