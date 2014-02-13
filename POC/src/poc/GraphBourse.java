@@ -35,9 +35,9 @@ public class GraphBourse implements Runnable {
 		chart.getAxisX().setPaintGrid(true);
 		chart.getAxisY().setPaintGrid(true);
 		chart.getAxisY().setRangePolicy(
-				new RangePolicyMinimumViewport(new Range(-20, +20)));
+				new RangePolicyMinimumViewport(new Range(0, +20)));
 		chart.setGridColor(Color.LIGHT_GRAY);
-		trace = new Trace2DLtd(100);
+		trace = new Trace2DLtd(1000);
 		trace.setName(init.company);
 		trace.setPhysicalUnits("ms", "€");
 		trace.setColor(Color.BLUE);
@@ -80,14 +80,15 @@ public class GraphBourse implements Runnable {
 		TimerTask task = new TimerTask() {
 
 			private double m_y = current.cotation;
-
+			private double m_t = 0.5;
 			@Override
 			public void run() {
 				// This is just computation of some nice looking value.
+				this.m_t = this.m_t + (this.m_t * (Math.random() - 0.5)*0.001);
 				double rand = Math.random();
-				boolean add = (rand >= 0.5) ? true : false;
-				this.m_y = (add) ? this.m_y + Math.random() : this.m_y
-						- Math.random();
+				boolean add = (rand >= m_t || this.m_y < 5.0) ? true : false;
+				this.m_y = (add) ? this.m_y + (this.m_y * Math.random()*0.005) : this.m_y
+						- (this.m_y * Math.random()*0.005);
 				// This is the important thing: Point is added from separate
 				// Thread.
 				current.time = System.currentTimeMillis();

@@ -6,6 +6,9 @@ import info.monitorenter.gui.chart.traces.Trace2DLtd;
 import info.monitorenter.util.Range;
 
 import java.awt.Color;
+import java.awt.GridLayout;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -36,6 +39,28 @@ public class Central {
 
 	public static void main(String[] args) {
 		genererCours(CoursBoursier.parseCSV("cours.csv"));
+		JFrame stack = new JFrame("Bourse");
+		stack.addWindowListener(new WindowAdapter() {
+  	      /**
+  	       * @see java.awt.event.WindowAdapter#windowClosing(java.awt.event.WindowEvent)
+  	       */
+  	      @Override
+  	      public void windowClosing(final WindowEvent e) {
+  	        System.exit(0);
+  	      }
+  	    });
+		stack.setLayout(new GridLayout(3, 3));
+		stack.add(bourse.get("FR0000133308").getChart());
+		stack.add(bourse.get("US0378331005").getChart());
+		stack.add(bourse.get("FR0000120271").getChart());
+		stack.add(bourse.get("FR0000133308").getChart());
+		stack.add(bourse.get("FR0000133308").getChart());
+		stack.add(bourse.get("FR0000133308").getChart());
+		stack.add(bourse.get("FR0000133308").getChart());
+		stack.add(bourse.get("FR0000133308").getChart());
+		stack.pack();
+		stack.setExtendedState(JFrame.MAXIMIZED_BOTH);
+		stack.setVisible(true);
 		System.out.println("Stack Exchange OPEN !");
 		ServerSocket ss;
 		ServerSocket ss_secret;
@@ -73,7 +98,7 @@ public class Central {
 		JFrame requeteFrame = new JFrame("Requetes par secondes");
 		requeteFrame.getContentPane().add(chart);
 		requeteFrame.setSize(800, 600);
-		requeteFrame.setVisible(true);
+		//requeteFrame.setVisible(true);
 		SecretServer secrets = new SecretServer(ss_secret);
 		new Thread(secrets).start();
 		while (true) {
